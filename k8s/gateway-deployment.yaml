@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edumanager-api-gateway
+  namespace: edumanager
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: edumanager-api-gateway
+  template:
+    metadata:
+      labels:
+        app: edumanager-api-gateway
+    spec:
+      containers:
+      - name: edumanager-api-gateway
+        image: edumanager/api-gateway:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          valueFrom:
+            configMapKeyRef:
+              name: edumanager-config
+              key: SPRING_PROFILES_ACTIVE
+        - name: SPRING_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: edumanager-secret
+              key: REDIS_PASSWORD
+        - name: EDUMANAGER_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: edumanager-secret
+              key: JWT_SECRET
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edumanager-api-gateway
+  namespace: edumanager
+spec:
+  selector:
+    app: edumanager-api-gateway
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: LoadBalancer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: edumanager-ingress
+  namespace: edumanager
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+  - hosts:
+    - api.edumanager.com
+    secretName: edumanager-tls
+  rules:
+  - host: api.edumanager.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: edumanager-api-gateway
+            port:
+              number: 8080

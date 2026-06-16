@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edumanager-tenant
+  namespace: edumanager
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: edumanager-tenant
+  template:
+    metadata:
+      labels:
+        app: edumanager-tenant
+    spec:
+      containers:
+      - name: edumanager-tenant
+        image: edumanager/tenant:latest
+        ports:
+        - containerPort: 8081
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          valueFrom:
+            configMapKeyRef:
+              name: edumanager-config
+              key: SPRING_PROFILES_ACTIVE
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: edumanager-secret
+              key: POSTGRES_PASSWORD
+        - name: SPRING_REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: edumanager-secret
+              key: REDIS_PASSWORD
+        - name: EDUMANAGER_JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: edumanager-secret
+              key: JWT_SECRET
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8081
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edumanager-tenant
+  namespace: edumanager
+spec:
+  selector:
+    app: edumanager-tenant
+  ports:
+  - port: 8081
+    targetPort: 8081
+  type: ClusterIP

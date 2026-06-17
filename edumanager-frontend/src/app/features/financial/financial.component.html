@@ -1,4 +1,78 @@
 <div class="financial-container">
-  <h1>{{ title }}</h1>
-  <p>Financial management module</p>
+  <div class="header">
+    <h1>{{ title }}</h1>
+    <button mat-raised-button color="primary" (click)="openDialog()">
+      <mat-icon>add</mat-icon>
+      Add Invoice
+    </button>
+  </div>
+
+  <div class="search-bar">
+    <mat-form-field appearance="fill" class="search-field">
+      <mat-label>Search invoices</mat-label>
+      <input matInput [(ngModel)]="searchTerm" (keyup.enter)="searchInvoices()" placeholder="Search by invoice number, student...">
+      <button mat-icon-button matSuffix (click)="searchInvoices()">
+        <mat-icon>search</mat-icon>
+      </button>
+    </mat-form-field>
+  </div>
+
+  <div class="table-container">
+    <mat-table [dataSource]="invoices" class="mat-elevation-z8">
+      <ng-container matColumnDef="id">
+        <mat-header-cell *matHeaderCellDef>ID</mat-header-cell>
+        <mat-cell *matCellDef="let invoice">{{ invoice.id }}</mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="invoiceNumber">
+        <mat-header-cell *matHeaderCellDef>Invoice #</mat-header-cell>
+        <mat-cell *matCellDef="let invoice">{{ invoice.invoiceNumber }}</mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="student">
+        <mat-header-cell *matHeaderCellDef>Student</mat-header-cell>
+        <mat-cell *matCellDef="let invoice">{{ invoice.student }}</mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="amount">
+        <mat-header-cell *matHeaderCellDef>Amount</mat-header-cell>
+        <mat-cell *matCellDef="let invoice">${{ invoice.amount }}</mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="dueDate">
+        <mat-header-cell *matHeaderCellDef>Due Date</mat-header-cell>
+        <mat-cell *matCellDef="let invoice">{{ invoice.dueDate | date:'short' }}</mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <mat-header-cell *matHeaderCellDef>Status</mat-header-cell>
+        <mat-cell *matCellDef="let invoice">
+          <span [class]="getStatusClass(invoice.status)">{{ invoice.status }}</span>
+        </mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <mat-header-cell *matHeaderCellDef>Actions</mat-header-cell>
+        <mat-cell *matCellDef="let invoice">
+          <button mat-icon-button (click)="openDialog(invoice)">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="deleteInvoice(invoice.id)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </mat-cell>
+      </ng-container>
+
+      <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+    </mat-table>
+
+    <div *ngIf="isLoading" class="loading">
+      <mat-spinner></mat-spinner>
+    </div>
+
+    <div *ngIf="!isLoading && invoices.length === 0" class="no-data">
+      <p>No invoices found</p>
+    </div>
+  </div>
 </div>
